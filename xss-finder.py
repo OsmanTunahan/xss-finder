@@ -131,3 +131,83 @@ class PayloadGenerator:
 
     def generate(self, context):
         return self.payloads.get(context, [])
+
+
+class ModelTrainer:
+    def __init__(self, data_path):
+        self.data_path = data_path
+
+    def train(self):
+        data = pd.read_csv(self.data_path)
+        X = data['HTML Content']
+        y = data['Label']
+        vectorizer = CountVectorizer()
+        X_vectorized = vectorizer.fit_transform(X)
+        classifier = DecisionTreeClassifier()
+        classifier.fit(X_vectorized, y)
+        return classifier, vectorizer
+
+
+class XssScanner:
+    def __init__(self, classifier, vectorizer):
+        self.classifier = classifier
+        self.vectorizer = vectorizer
+
+    def predict_context(self, html_content):
+        html_escaped = html.escape(html_content)
+        html_vectorized = self.vectorizer.transform([html_escaped])
+        return self.classifier.predict(html_vectorized)[0]
+
+    def get_majority_context(self, contexts):
+        context_counter = Counter(contexts)
+        return context_counter.most_common(1)[0][0]
+
+    def predict_reflection_contexts(self, html_response_lines, reflections):
+        reflection_contexts = []
+        for reflection_param, reflection_value in reflections:
+            for i, line in enumerate(html_response_lines):
+                if reflection_value in line:
+                    context_lines = html_response_lines[max(0, i - 2):min(len(html_response_lines), i + 3)]
+                    context_html = '\n'.join(context_lines)
+                    predicted_context = self.predict_context(context_html)
+                    reflection_contexts.append((reflection_param, predicted_context))
+                    break
+        return reflection_contexts
+
+
+class Crawler:
+    @staticmethod
+    def crawl(base_url):
+        visited = set()
+        failed = set()
+        urls_to_visit = queue.Queue()
+        urls_in_queue = set()
+        urls_to_visit.put(base_url)
+        urls_in_queue.add(base_url)
+        base_domain = urlparse(base_url).netloc
+
+        while not urls_to_visit.empty():
+            current_url = urls_to_visit.get()
+            urls_in_queue.remove(current_url)
+            if current_url in visited or current_url in failed:
+                continue
+            try:
+                response = requests.get(current_url)
+                response.raise_for_status()
+                visited.add(current_url)
+                parser = lxml_html.fromstring(response.text)
+
+                for element in parser.xpath('//a[@href]'):
+                    link = element.get('href')
+                    if not link:
+                        continue
+                    full_url = urljoin(current_url, link)
+                    full_domain = urlparse(full_url).netloc
+                    if full_domain == base_domain and full_url not in visited and full_url not in urls_in_queue:
+                        urls_to_visit.put(full_url)
+                        urls_in_queue.add(full_url)
+
+                yield current_url
+
+            except requests.exceptions.RequestException:
+                failed.add(current_url)
