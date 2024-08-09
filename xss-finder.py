@@ -211,3 +211,35 @@ class Crawler:
 
             except requests.exceptions.RequestException:
                 failed.add(current_url)
+
+
+class ConsoleOutput:
+    @staticmethod
+    def print_separator():
+        terminal_width = shutil.get_terminal_size((80, 20)).columns
+        separator = '-' * (terminal_width // 3) + ' XSSFinder ' + '-' * (terminal_width // 3)
+        if len(separator) > terminal_width:
+            separator = separator[:terminal_width]
+        print(separator)
+
+    @staticmethod
+    def print_sub_separator():
+        terminal_width = shutil.get_terminal_size((80, 20)).columns
+        separator = '-' * (terminal_width // 3)
+        if len(separator) > terminal_width:
+            separator = separator[:terminal_width]
+        print(separator)
+
+    @staticmethod
+    def print_reflections(reflection_contexts):
+        print("[+] Reflections and Predicted Contexts:")
+        for reflection, context in reflection_contexts:
+            print(f"[+] Reflection Parameter: {reflection}, Predicted Context: {context}")
+
+    @staticmethod
+    def print_payload_suggestions(whole_dict):
+        ConsoleOutput.print_sub_separator()
+        print("[+] Stealth-mode: Payloads suggested but not executed.")
+        for key in whole_dict:
+            print(f"[+] Parameter: {key}, Suggested Payload: {whole_dict[key][0]['payload']}")
+
